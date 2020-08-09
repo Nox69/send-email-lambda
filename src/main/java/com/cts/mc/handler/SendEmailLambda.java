@@ -17,23 +17,24 @@ import static com.cts.mc.service.SendEmailService.*;
  */
 public class SendEmailLambda implements RequestHandler<SQSEvent, String> {
 
-    private static final String SUCCESSFUL = "Email is sent successfully";
-    private static final String EMAIL_ATTRIBUTE = "email";
+	private static final String SUCCESSFUL = "Email is sent successfully";
+	private static final String EMAIL_ATTRIBUTE = "email";
 
-    private static Logger log = LoggerFactory.getLogger(SendEmailLambda.class);
+	private static Logger log = LoggerFactory.getLogger(SendEmailLambda.class);
 
-    @Override
-    public String handleRequest(SQSEvent request, Context context) {
+	@Override
+	public String handleRequest(SQSEvent request, Context context) {
 
-        // Processing the SQS message
-        SQSMessage sqsMessage = request.getRecords().get(0);
+		// Processing the SQS message
+		SQSMessage sqsMessage = request.getRecords().get(0);
 
-        log.info("Processing the SQS message with Id : [{}] at [{}]", sqsMessage.getMessageAttributes().get(EMAIL_ATTRIBUTE), LocalDateTime.now());
+		log.info("Processing the SQS message with Id : [{}] at [{}]",
+				sqsMessage.getMessageAttributes().get(EMAIL_ATTRIBUTE), LocalDateTime.now());
 
-        sendEmail(sqsMessage.getMessageAttributes());
-        log.info("Email Sent Successfully");
+		sendEmail(sqsMessage.getMessageAttributes());
+		log.info("Email Sent Successfully");
 
-        return SUCCESSFUL;
-    }
+		return SUCCESSFUL;
+	}
 
 }
