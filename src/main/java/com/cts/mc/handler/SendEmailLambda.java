@@ -29,7 +29,7 @@ public class SendEmailLambda implements RequestHandler<SQSEvent, String> {
 		SQSMessage sqsMessage = request.getRecords().get(0);
 
 		log.info("Processing the SQS message with Id : [{}] at [{}]",
-				sqsMessage.getMessageAttributes().get(EMAIL_ATTRIBUTE), LocalDateTime.now());
+				sqsMessage.getMessageAttributes().get(EMAIL_ATTRIBUTE).getStringValue(), LocalDateTime.now());
 
 		sendEmail(sqsMessage.getMessageAttributes());
 		log.info("Email Sent Successfully");

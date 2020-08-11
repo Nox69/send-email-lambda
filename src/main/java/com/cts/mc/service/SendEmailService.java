@@ -3,9 +3,9 @@ package com.cts.mc.service;
 import static com.cts.mc.config.AwsSMTPConfiguration.sesClient;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,11 +30,17 @@ public class SendEmailService {
 	private static final String EMAIL_ATTRIBUTE = "email";
 	private static final String TYPE_ATTRIBUTE = "type";
 	private static final String FIRST_NAME_ATTRIBUTE = "firstName";
+	private static final String PAC_NAME_ATTRIBUTE = "pac";
+	private static final String EMPTY = "";
+	private static final String PRODUCT_NAME_ATTRIBUTE = "product";
 
-	private static final String REGISTER_EMAIL_TYPE = "register";
+	private static final String USER_REGISTER_EMAIL_TYPE = "register-user";
+	private static final String PRODUCT_REGISTER_EMAIL_TYPE = "register-product";
+
 	private static final Map<String, String> EMAIL_TEMPLATE = createTemplateMap();
 
-	private static final String REGISTER_EMAIL_TEMPLATE = "<h2>Dear %s,</h2><br><p>Thanks for your registration.<br><p>You can use your email-id and password to login to Amazon Order Processing.<br><p>This is auto-generated email, kindly donot reply to this. In case of any queries, Please contact here <a href=\"http://aws.amazon.com/\">AWS</a><br><br><p>Sincerely,<br><p>The Amazon Web Services";
+	private static final String USER_REGISTER_EMAIL_TEMPLATE = "<h2>Dear %s,</h2><br><p>Thanks for your registration.<br><p>Please Login with unique permament-access-code : <b>[%s]</b>.<br><p>This is auto-generated email, kindly donot reply to this. In case of any queries, Please contact here <a href=\"http://aws.amazon.com/\">AWS</a><br><br><p>Sincerely,<br><p>The Amazon Web Services";
+	private static final String PRODUCT_REGISTER_EMAIL_TEMPLATE = "<h2>Greetings from Amazon,</h2><br><p>Your Product %s is added Successfully.<br><p>This is auto-generated email, kindly donot reply to this. In case of any queries, Please contact here <a href=\"http://aws.amazon.com/\">AWS</a><br><br><p>Sincerely,<br><p>The Amazon Web Services";
 
 	public static void sendEmail(Map<String, MessageAttribute> messageAttributes) {
 
@@ -43,12 +49,11 @@ public class SendEmailService {
 			log.info("Preparing Email for [{}]", emailType);
 
 			SendEmailRequest request = new SendEmailRequest()
-					.withDestination(new Destination()
-							.withToAddresses(messageAttributes.get(EMAIL_ATTRIBUTE).getStringValue()))
+					.withDestination(
+							new Destination().withToAddresses(messageAttributes.get(EMAIL_ATTRIBUTE).getStringValue()))
 					.withMessage(new Message()
 							.withBody(new Body().withHtml(new Content().withCharset(UTF_8.toString())
-									.withData(String.format(EMAIL_TEMPLATE.get(emailType),
-											messageAttributes.get(FIRST_NAME_ATTRIBUTE).getStringValue()))))
+									.withData(selectAndFillTemplate(emailType, messageAttributes))))
 							.withSubject(new Content().withCharset(UTF_8.toString()).withData(SUBJECT)))
 					.withSource(FROM);
 			sesClient().sendEmail(request);
@@ -58,8 +63,24 @@ public class SendEmailService {
 	}
 
 	private static Map<String, String> createTemplateMap() {
-		Map<String, String> resultMap = new HashMap<>();
-		resultMap.put(REGISTER_EMAIL_TYPE, REGISTER_EMAIL_TEMPLATE);
-		return Collections.unmodifiableMap(resultMap);
+		Object[][] resultMap = new Object[][] { { USER_REGISTER_EMAIL_TYPE, USER_REGISTER_EMAIL_TEMPLATE },
+				{ PRODUCT_REGISTER_EMAIL_TYPE, PRODUCT_REGISTER_EMAIL_TEMPLATE } };
+
+		return Stream.of(resultMap).collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+	}
+
+	private static String selectAndFillTemplate(String emailType, Map<String, MessageAttribute> messageAttributes) {
+		switch (emailType) {
+		case USER_REGISTER_EMAIL_TYPE:
+			return String.format(EMAIL_TEMPLATE.get(emailType),
+					messageAttributes.get(FIRST_NAME_ATTRIBUTE).getStringValue(),
+					messageAttributes.get(PAC_NAME_ATTRIBUTE).getStringValue());
+
+		case PRODUCT_REGISTER_EMAIL_TYPE:
+			return String.format(EMAIL_TEMPLATE.get(emailType),
+					messageAttributes.get(PRODUCT_NAME_ATTRIBUTE).getStringValue());
+		}
+		return EMPTY;
+
 	}
 }
